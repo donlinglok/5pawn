@@ -1,0 +1,241 @@
+<style>
+    * {
+  margin: 0;
+  padding: 0;
+}
+html,
+body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#canvas {
+  box-shadow: 3px 3px 3px 3px rgb(194, 188, 188);
+  cursor: pointer;
+}
+</style>
+
+<canvas id="canvas" width="450" height="450"></canvas>
+
+<script>
+    let canvas = document.querySelector('#canvas');
+let ctx = canvas.getContext('2d');
+ctx.strokeStyle = '#B9B9B9';
+for (let i = 0; i < 15; i++) {
+  ctx.moveTo(15, 15 + i * 30);
+  ctx.lineTo(435, 15 + i * 30);
+  ctx.stroke();
+}
+for (let i = 0; i < 15; i++) {
+  ctx.moveTo(15 + i * 30, 15);
+  ctx.lineTo(15 + i * 30, 435);
+  ctx.stroke();
+}
+
+// 赢法数组
+let wins = [];
+for (let i = 0; i < 15; i++) {
+  wins[i] = [];
+  for (let j = 0; j < 15; j++) {
+    wins[i][j] = [];
+  }
+}
+
+let count = 0;
+// 横线
+for (let i = 0; i < 15; i++) {
+  for (let j = 0; j < 11; j++) {
+    for (let k = 0; k < 5; k++) {
+      wins[j + k][i][count] = true;
+    }
+    count++;
+  }
+}
+
+// 竖线
+for (let i = 0; i < 15; i++) {
+  for (let j = 0; j < 11; j++) {
+    for (let k = 0; k < 5; k++) {
+      wins[i][j + k][count] = true;
+    }
+    count++;
+  }
+}
+
+// 正斜线
+for (let i = 0; i < 11; i++) {
+  for (let j = 0; j < 11; j++) {
+    for (let k = 0; k < 5; k++) {
+      wins[i + k][j + k][count] = true;
+    }
+    count++;
+  }
+}
+
+// 反斜线
+for (let i = 0; i < 11; i++) {
+  for (let j = 14; j > 3; j--) {
+    for (let k = 0; k < 5; k++) {
+      wins[i + k][j - k][count] = true;
+    }
+    count++;
+  }
+}
+
+// 定义二维数组标记棋盘上的坐标是否已经下了棋子
+let chessboard = [];
+for (let i = 0; i < 15; i++) {
+  chessboard[i] = [];
+  for (let j = 0; j < 15; j++) {
+    chessboard[i][j] = 0;
+  }
+}
+
+// 下棋
+
+// 标记谁来下棋
+let me = true;
+// 判断游戏是否结束
+let over = false;
+// 记录用户在赢法上的分支
+let myWin = [];
+// 记录计算机在赢法上的分值;
+let aiWin = [];
+for (let i = 0; i < count; i++) {
+  myWin[i] = 0;
+  aiWin[i] = 0;
+}
+
+canvas.onclick = function (e) {
+  // 判断游戏是否结束
+  if (over) return;
+
+  // 判断是否可以下棋
+  if (!me) return;
+
+  let x = e.offsetX;
+  let y = e.offsetY;
+
+  // 舍弃小数
+  let i = Math.floor(x / 30);
+  let j = Math.floor(y / 30);
+  if (chessboard[i][j] == 0) {
+    // 标记这个地方有一个子了
+    chessboard[i][j] = 1;
+    oneStep(i, j, me);
+    for (let k = 0; k < count; k++) {
+      if (wins[i][j][k]) {
+        myWin[k]++;
+        if (myWin[k] == 5) {
+          over = true;
+          alert('你赢了')
+        }
+      }
+    }
+    if (!over) {
+      me = !me;
+      // 计算机下棋
+      ai();
+    }
+  }
+}
+
+function ai() {
+  // 空白子在用户所占用赢法上的分值
+  let myScore = [];
+  // 空白子在计算机所占赢法上的分值
+  let aiScore = [];
+
+  for (let i = 0; i < 15; i++) {
+    myScore[i] = [];
+    aiScore[i] = [];
+    for (let j = 0; j < 15; j++) {
+      myScore[i][j] = 0;
+      aiScore[i][j] = 0;
+    }
+  }
+  // 空白字的最大分值
+  let max = 0;
+  // 最大分值空白子所在的坐标
+  let x = 0, y = 0;
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      // 判断是不是空白子
+      if (chessboard[i][j] == 0) {
+        for (let k = 0; k < count; k++) {
+          if (wins[i][j][k]) {
+            if (myWin[k] == 1) {
+              myScore[i][j] += 200;
+            } else if (myWin[k] == 2) {
+              myScore[i][j] += 400;
+            } else if (myWin[k] == 3) {
+              myScore[i][j] += 2000;
+            } else if (myWin[k] == 4) {
+              myScore[i][j] += 10000;
+            }
+            if (aiWin[k] == 1) {
+              aiScore[i][j] += 220;
+            } else if (aiWin[k] == 2) {
+              aiScore[i][j] += 420;
+            } else if (aiWin[k] == 3) {
+              aiScore[i][j] += 2200;
+            } else if (aiWin[k] == 4) {
+              aiScore[i][j] += 20000;
+            }
+          }
+        }
+        if (myScore[i][j] > max) {
+          max = myScore[i][j];
+          x = i;
+          y = j;
+        } else if (myScore[i][j] == max) {
+          if (aiScore[i][j] > max) {
+            max = aiScore[i][j];
+            x = i;
+            y = j;
+          }
+        }
+        if (aiScore[i][j] > max) {
+          max = aiScore[i][j];
+          x = i;
+          y = j;
+        } else if (aiScore[i][j] == max) {
+          if (myScore[i][j] > max) {
+            max = myScore[i][j];
+            x = i;
+            y = j;
+          }
+        }
+      }
+    }
+  }
+  oneStep(x, y, me);
+  chessboard[x][y] = 1;
+  for (let k = 0; k < count; k++) {
+    if (wins[x][y][k]) {
+      aiWin[k] += 1;
+      if (aiWin[k] == 5) {
+        alert('计算机赢了')
+        over = true;
+      }
+    }
+  }
+  if (!over) me = !me;
+}
+function oneStep(i, j, me) {
+  // 下一个棋子
+  ctx.beginPath();
+  ctx.arc(15 + i * 30, 15 + j * 30, 13, 0, 2 * Math.PI);
+  ctx.closePath();
+  let color;
+  if (me) {
+    color = '#000000';
+  } else {
+    color = 'red';
+  }
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+</script>
